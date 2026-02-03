@@ -81,66 +81,117 @@ const player = document.querySelector('#player');
 const character = document.querySelector('#character');
 const orbitRig = document.querySelector('#camera-orbit-rig');
 
-let speed = 0.08;
+// Movement configuration
+let speed = 0.12; // Adjusted for a better feel on mobile
 let moveDir = { x: 0, z: 0 };
 let activeMove = false;
+let isSneaking = false;
 
-// 1. MOVEMENT DPAD LOGIC
+/**
+ * 1. MOVEMENT DPAD LOGIC
+ * We calculate direction relative to the camera angle in the tick function.
+ */
 const movementBtns = {
-  up: { x: 0, z: -1 },
-  down: { x: 0, z: 1 },
-  left: { x: -1, z: 0 },
-  right: { x: 1, z: 0 }
+  up:    { x: 0,  z: -1 },
+  down:  { x: 0,  z: 1 },
+  left:  { x: -1, z: 0 },
+  right: { x: 1,  z: 0 }
 };
 
 Object.keys(movementBtns).forEach(id => {
   const el = document.getElementById(id);
+  
   el.addEventListener('touchstart', (e) => {
     e.preventDefault();
     moveDir = { x: movementBtns[id].x, z: movementBtns[id].z };
     activeMove = true;
-    character.setAttribute('animation-mixer', 'clip: Step_Stop; crossFadeDuration: 0.2; loop: repeat');
+    isSneaking = false;
+    // Using Step_Stop for the standard move as requested
+    character.setAttribute('animation-mixer', {
+      clip: 'Step_Stop',
+      crossFadeDuration: 0.2,
+      loop: 'repeat'
+    });
   });
-  el.addEventListener('touchend', () => { 
-    activeMove = false; 
-    character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
-  });
-});
 
-// 2. ACTION PAD LOGIC (Jump, Sneak, 180, Crouch)
-const actions = { jump: 'Jump_Up', turn: 'Turn_180', crouch: 'Crouch_Idle', sneak: 'Sneak_Walk_A' };
-Object.keys(actions).forEach(id => {
-  const el = document.getElementById(id);
-  el.addEventListener('touchstart', () => {
-    if(id === 'sneak') { activeMove = true; moveDir = {x:0, z:-1}; }
-    character.setAttribute('animation-mixer', `clip: ${actions[id]}; crossFadeDuration: 0.3`);
-  });
-  el.addEventListener('touchend', () => {
+  el.addEventListener('touchend', (e) => {
+    e.preventDefault();
     activeMove = false;
-    character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
+    character.setAttribute('animation-mixer', {
+      clip: 'Idle_Static',
+      crossFadeDuration: 0.4
+    });
   });
 });
 
-// 3. CAMERA-RELATIVE MOVEMENT ENGINE
+/**
+ * 2. ACTION PAD LOGIC
+ */
+const actionMap = {
+  jump:   { clip: 'Jump_Up', loop: 'once' },
+  turn:   { clip: 'Turn_180', loop: 'once' },
+  crouch: { clip: 'Crouch_Idle', loop: 'repeat' },
+  sneak:  { clip: 'Sneak_Walk_A', loop: 'repeat' }
+};
+
+Object.keys(actionMap).forEach(id => {
+  const el = document.getElementById(id);
+  
+  el.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const action = actionMap[id];
+    
+    if (id === 'sneak') {
+      activeMove = true;
+      isSneaking = true;
+      moveDir = { x: 0, z: -1 }; // Sneak always moves "forward"
+    }
+
+    character.setAttribute('animation-mixer', {
+      clip: action.clip,
+      loop: action.loop,
+      crossFadeDuration: 0.3
+    });
+  });
+
+  el.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    activeMove = false;
+    isSneaking = false;
+    character.setAttribute('animation-mixer', {
+      clip: 'Idle_Static',
+      crossFadeDuration: 0.4
+    });
+  });
+});
+
+/**
+ * 3. CORE ENGINE: CAMERA-RELATIVE MOVEMENT
+ * This runs every frame to calculate where "forward" is based on where you look.
+ */
 function tick() {
   if (activeMove) {
     const currentPos = player.getAttribute('position');
+    const currentSpeed = isSneaking ? speed * 0.4 : speed;
     
-    // Get the current rotation of the camera orbit in Radians
-    const cameraRotation = orbitRig.getAttribute('rotation').y * (Math.PI / 180);
+    // Get the camera's current Y-axis rotation in Radians
+    const cameraYaw = orbitRig.getAttribute('rotation').y * (Math.PI / 180);
     
-    // Calculate movement vector relative to camera angle
-    // This makes "UP" always move away from your current view
-    const rotatedX = moveDir.x * Math.cos(cameraRotation) + moveDir.z * Math.sin(cameraRotation);
-    const rotatedZ = moveDir.z * Math.cos(cameraRotation) - moveDir.x * Math.sin(cameraRotation);
+    /**
+     * DIRECTION MATH: 
+     * We invert the signs to ensure "UP" pushes the player AWAY from the screen.
+     */
+    const rotatedX = - (moveDir.x * Math.cos(cameraYaw) + moveDir.z * Math.sin(cameraYaw));
+    const rotatedZ = - (moveDir.z * Math.cos(cameraYaw) - moveDir.x * Math.sin(cameraYaw));
 
-    // Update Player Position
-    currentPos.x += rotatedX * speed;
-    currentPos.z += rotatedZ * speed;
+    // Apply movement to the player rig
+    currentPos.x += rotatedX * currentSpeed;
+    currentPos.z += rotatedZ * currentSpeed;
     player.setAttribute('position', currentPos);
 
-    // ROTATE CHARACTER TO FACE MOVEMENT DIRECTION
-    // We add Math.PI (180 deg) because the Mixamo model faces backward by default
+    // ROTATE CHARACTER:
+    // Calculate the angle of movement so the character faces where they are going.
+    // + Math.PI (180 deg) offsets the default Mixamo model orientation.
     const moveAngle = Math.atan2(rotatedX, rotatedZ);
     character.setAttribute('rotation', {
       x: 0, 
@@ -150,6 +201,8 @@ function tick() {
   }
   requestAnimationFrame(tick);
 }
+
+// Start the game loop
 tick();
 
 </script>
