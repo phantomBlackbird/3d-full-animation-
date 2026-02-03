@@ -53,91 +53,108 @@
       <div id="crouch" class="action-btn">CROUCH</div>
     </div>
 
-    <a-scene vr-mode-ui="enabled: false">
-      <a-assets>
-        <a-asset-item id="playerModel" src="character-model.glb"></a-asset-item>
-      </a-assets>
+<a-scene vr-mode-ui="enabled: false">
+  <a-assets>
+    <a-asset-item id="playerModel" src="character-model.glb"></a-asset-item>
+  </a-assets>
 
-      <a-entity environment="preset: forest; dressingAmount: 300;"></a-entity>
+  <a-entity environment="preset: forest; dressingAmount: 300;"></a-entity>
 
-      <a-entity id="player" position="0 0 0">
-        <a-entity id="character"
-                  gltf-model="#playerModel"
-                  scale="0.011 0.011 0.011" 
-                  rotation="0 180 0"
-                  animation-mixer="clip: Idle_Static; crossFadeDuration: 0.4">
-        </a-entity>
+  <a-entity id="player" position="0 0 0">
+    
+    <a-entity id="camera-orbit-rig" look-controls="pointerLockEnabled: false">
+        <a-camera id="main-camera" wasd-controls-enabled="false" position="0 1.2 3" look-controls-enabled="false">
+        </a-camera>
+    </a-entity>
 
-        <a-entity id="camera-rig" position="0 0.8 2.5">
-            <a-camera id="main-camera" look-controls="pointerLockEnabled: false" wasd-controls-enabled="false">
-            </a-camera>
-        </a-entity>
-      </a-entity>
-    </a-scene>
+    <a-entity id="character"
+              gltf-model="#playerModel"
+              scale="0.011 0.011 0.011" 
+              rotation="0 180 0"
+              animation-mixer="clip: Idle_Static; crossFadeDuration: 0.4">
+    </a-entity>
+  </a-entity>
+</a-scene>
 
-    <script>
-      const player = document.querySelector('#player');
-      const character = document.querySelector('#character');
-      const camera = document.querySelector('#main-camera');
-      let speed = 0.08;
-      let moveDir = { x: 0, z: 0 };
-      let activeMove = false;
+<script>
+  const player = document.querySelector('#player');
+  const character = document.querySelector('#character');
+  const orbitRig = document.querySelector('#camera-orbit-rig');
+  
+  let speed = 0.08;
+  let moveDir = { x: 0, z: 0 };
+  let activeMove = false;
 
-      // Movement Logic with Step_Stop
-      const movementBtns = {
-        up: { z: -1, rot: 180 },
-        down: { z: 1, rot: 0 },
-        left: { x: -1, rot: -90 },
-        right: { x: 1, rot: 90 }
-      };
+  // 1. Movement Logic (D-Pad)
+  const movementBtns = {
+    up: { z: -1, rot: 180 },
+    down: { z: 1, rot: 0 },
+    left: { x: -1, rot: -90 },
+    right: { x: 1, rot: 90 }
+  };
 
-      Object.keys(movementBtns).forEach(id => {
-        const el = document.getElementById(id);
-        el.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          moveDir = { x: movementBtns[id].x || 0, z: movementBtns[id].z || 0 };
-          character.setAttribute('rotation', {y: movementBtns[id].rot});
-          activeMove = true;
-          character.setAttribute('animation-mixer', 'clip: Step_Stop; crossFadeDuration: 0.2; loop: repeat');
-        });
-        el.addEventListener('touchend', () => { 
-          activeMove = false; 
-          character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
-        });
-      });
+  Object.keys(movementBtns).forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      moveDir = { x: movementBtns[id].x || 0, z: movementBtns[id].z || 0 };
+      
+      // Update character rotation relative to its own starting point
+      character.setAttribute('rotation', {y: movementBtns[id].rot});
+      
+      activeMove = true;
+      character.setAttribute('animation-mixer', 'clip: Step_Stop; crossFadeDuration: 0.2; loop: repeat');
+    });
+    el.addEventListener('touchend', () => { 
+      activeMove = false; 
+      character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
+    });
+  });
 
-      // Action Logic
-      const actionMap = {
-        jump: 'Jump_Up',
-        turn: 'Turn_180',
-        crouch: 'Crouch_Idle',
-        sneak: 'Sneak_Walk_A'
-      };
+  // 2. Action Buttons Logic (Jump, Sneak, 180, Crouch)
+  const actions = {
+    jump: 'Jump_Up',
+    turn: 'Turn_180',
+    crouch: 'Crouch_Idle',
+    sneak: 'Sneak_Walk_A'
+  };
 
-      Object.keys(actionMap).forEach(id => {
-        const el = document.getElementById(id);
-        el.addEventListener('touchstart', () => {
-          if(id === 'sneak') { activeMove = true; moveDir = {x:0, z:-1}; character.setAttribute('rotation', {y:180}); }
-          character.setAttribute('animation-mixer', `clip: ${actionMap[id]}; crossFadeDuration: 0.3`);
-        });
-        el.addEventListener('touchend', () => {
-          activeMove = false;
-          character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
-        });
-      });
-
-      // Update Loop
-      function tick() {
-        if (activeMove) {
-          const pos = player.getAttribute('position');
-          // Move relative to the rig's current position
-          pos.x += moveDir.x * speed;
-          pos.z += moveDir.z * speed;
-          player.setAttribute('position', pos);
-        }
-        requestAnimationFrame(tick);
+  Object.keys(actions).forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', () => {
+      if(id === 'sneak') { 
+        activeMove = true; 
+        moveDir = {x:0, z:-1}; 
+        character.setAttribute('rotation', {y:180}); 
       }
-      tick();
-    </script>
+      character.setAttribute('animation-mixer', `clip: ${actions[id]}; crossFadeDuration: 0.3`);
+    });
+    el.addEventListener('touchend', () => {
+      activeMove = false;
+      character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
+    });
+  });
+
+  // 3. Frame Update (Movement)
+  function tick() {
+    if (activeMove) {
+      const currentPos = player.getAttribute('position');
+      
+      // Calculate rotation based on the orbit rig's Y rotation 
+      // so 'UP' is always away from the camera
+      const rotation = orbitRig.getAttribute('rotation').y * (Math.PI / 180);
+      
+      const rotatedX = moveDir.x * Math.cos(rotation) + moveDir.z * Math.sin(rotation);
+      const rotatedZ = moveDir.z * Math.cos(rotation) - moveDir.x * Math.sin(rotation);
+
+      currentPos.x += rotatedX * speed;
+      currentPos.z += rotatedZ * speed;
+      
+      player.setAttribute('position', currentPos);
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+</script>
   </body>
 </html>
