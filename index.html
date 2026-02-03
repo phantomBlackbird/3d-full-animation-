@@ -37,23 +37,24 @@
 
       <a-entity environment="preset: forest; dressingAmount: 500; groundColor: #223a1a; grid: none;"></a-entity>
 
-<a-entity id="player" position="0 0 0" movement-controls="controls: joystick; speed: 0.2">
+<a-entity id="player" position="0 0 0" movement-controls="controls: joystick; speed: 0.15">
   
   <a-entity id="character"
             gltf-model="#playerModel"
-            scale="0.033 0.033 0.033" 
+            scale="0.011 0.011 0.011" 
             position="0 0 0" 
             rotation="0 180 0"
             animation-mixer="clip: Idle_Static; loop: repeat">
   </a-entity>
 
-  <a-entity id="camera-rig" position="0 1.6 3.5">
+  <a-entity id="camera-rig" position="0 1.2 2.5">
       <a-camera id="main-camera" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
           <a-cursor visible="false" raycaster="objects: .target"></a-cursor>
       </a-camera>
   </a-entity>
 
 </a-entity>
+
 
       <a-box class="target" position="-5 1 -10" color="red"></a-box>
       <a-box class="target" position="5 1 -15" color="red"></a-box>
