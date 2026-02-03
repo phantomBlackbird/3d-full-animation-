@@ -44,49 +44,58 @@
             scale="0.011 0.011 0.011" 
             position="0 0 0" 
             rotation="0 180 0"
-            animation-mixer="clip: Idle_Static; loop: repeat">
+            animation-mixer="clip: Idle_Static; crossFadeDuration: 0.4">
   </a-entity>
 
   <a-entity id="camera-rig" position="0 0.8 3">
-      <a-camera id="main-camera" 
-                look-controls="pointerLockEnabled: true" 
-                wasd-controls-enabled="false"
-                position="0 0 0">
-          <a-cursor visible="false" raycaster="objects: .target"></a-cursor>
+      <a-camera id="main-camera" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
+          <a-cursor visible="false"></a-cursor>
       </a-camera>
   </a-entity>
-
 </a-entity>
 
+<script>
+  const characterEl = document.querySelector('#character');
+  const playerEl = document.querySelector('#player');
+  let isMoving = false;
 
-
-      <a-box class="target" position="-5 1 -10" color="red"></a-box>
-      <a-box class="target" position="5 1 -15" color="red"></a-box>
-
-    </a-scene>
-
-    <script>
-      // SCRIPT: Handle Animation Switching based on movement
-      const playerEl = document.querySelector('#player');
-      const characterEl = document.querySelector('#character');
-
-      playerEl.addEventListener('componentchanged', (evt) => {
-        if (evt.detail.name === 'position') {
-            // If the player is moving, play Walk or Run
-            characterEl.setAttribute('animation-mixer', 'clip: Walk_Forward');
-        }
+  // This function handles the "Perfect Playback" transition
+  function setAnimation(clipName) {
+    const currentClip = characterEl.getAttribute('animation-mixer').clip;
+    if (currentClip !== clipName) {
+      characterEl.setAttribute('animation-mixer', {
+        clip: clipName,
+        duration: 0, // uses original animation speed
+        crossFadeDuration: 0.4 // smooth blending between animations
       });
+    }
+  }
 
-      // SCRIPT: Mobile/Mouse "Attack" on Tap
-      window.addEventListener('mousedown', () => {
-          // Change animation to "Jump" or "Attack" when clicking/tapping
-          characterEl.setAttribute('animation-mixer', 'clip: Jump_Up; clampWhenFinished: true; loop: once');
-          
-          // Revert to Idle after animation ends (approx 1.5 seconds)
-          setTimeout(() => {
-              characterEl.setAttribute('animation-mixer', 'clip: Idle_Static; loop: repeat');
-          }, 1500);
-      });
-    </script>
+  // Listen for movement from the joystick
+  playerEl.addEventListener('navigation-start', () => {
+    isMoving = true;
+    setAnimation('Walk_Forward'); 
+  });
+
+  playerEl.addEventListener('navigation-end', () => {
+    isMoving = false;
+    setAnimation('Idle_Static');
+  });
+
+  // Optional: Speed detection for Backwards
+  // A-Frame's joystick usually maps all directions to 'navigation-start'
+  // If you want a specific "Backwards" animation, we check the velocity:
+  setInterval(() => {
+    if (isMoving) {
+      const velocity = playerEl.getAttribute('movement-controls').velocity;
+      // If moving backwards (z velocity is positive in local space)
+      if (velocity && velocity.z > 0.01) {
+        setAnimation('Crouch_Walk_Back'); // Or any back animation you have
+      } else {
+        setAnimation('Walk_Forward');
+      }
+    }
+  }, 100);
+</script>
   </body>
 </html>
