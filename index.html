@@ -2,100 +2,127 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>A-Frame Forest Shooter</title>
+    <title>A-Frame D-Pad Game</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
     <script src="https://unpkg.com/aframe-environment-component@1.3.2/dist/aframe-environment-component.min.js"></script>
-    <script src="https://cdn.rawgit.com/mrturck/aframe-joystick/master/joystick.min.js"></script>
 
     <style>
-      /* Style for the crosshair */
-      #crosshair {
+      /* D-Pad Overlay Styling */
+      #controls {
         position: fixed;
-        top: 50%;
-        left: 50%;
-        width: 20px;
-        height: 20px;
-        background: rgba(255, 0, 0, 0.5);
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        pointer-events: none;
-        z-index: 10;
-        border: 2px solid white;
+        bottom: 20px;
+        left: 20px;
+        z-index: 999;
+        display: grid;
+        grid-template-areas: 
+          ". up ."
+          "left . right"
+          ". down .";
+        gap: 10px;
+        user-select: none;
       }
+      .btn {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.3);
+        border: 2px solid #fff;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        touch-action: none; /* Prevents scrolling while playing */
+      }
+      .btn:active { background: rgba(255, 255, 255, 0.6); }
+      #up { grid-area: up; }
+      #down { grid-area: down; }
+      #left { grid-area: left; }
+      #right { grid-area: right; }
     </style>
   </head>
 
   <body>
-    <div id="crosshair"></div>
+    <div id="controls">
+      <div id="up" class="btn">▲</div>
+      <div id="left" class="btn">◀</div>
+      <div id="right" class="btn">▶</div>
+      <div id="down" class="btn">▼</div>
+    </div>
 
-    <a-scene joystick vr-mode-ui="enabled: false">
-      
+    <a-scene vr-mode-ui="enabled: false">
       <a-assets>
         <a-asset-item id="playerModel" src="character-model.glb"></a-asset-item>
       </a-assets>
 
-      <a-entity environment="preset: forest; dressingAmount: 500; groundColor: #223a1a; grid: none;"></a-entity>
+      <a-entity environment="preset: forest; dressingAmount: 500;"></a-entity>
 
-<a-entity id="player" position="0 0 0" movement-controls="controls: joystick; speed: 0.15">
-  
-  <a-entity id="character"
-            gltf-model="#playerModel"
-            scale="0.011 0.011 0.011" 
-            position="0 0 0" 
-            rotation="0 180 0"
-            animation-mixer="clip: Idle_Static; crossFadeDuration: 0.4">
-  </a-entity>
+      <a-entity id="player" position="0 0 0">
+        
+        <a-entity id="character"
+                  gltf-model="#playerModel"
+                  scale="0.011 0.011 0.011" 
+                  position="0 0 0" 
+                  rotation="0 180 0"
+                  animation-mixer="clip: Idle_Static; crossFadeDuration: 0.4">
+        </a-entity>
 
-  <a-entity id="camera-rig" position="0 0.8 3">
-      <a-camera id="main-camera" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
-          <a-cursor visible="false"></a-cursor>
-      </a-camera>
-  </a-entity>
-</a-entity>
+        <a-entity id="camera-rig" position="0 1.2 3">
+            <a-camera id="main-camera" look-controls="enabled: false" wasd-controls-enabled="false"></a-camera>
+        </a-entity>
+      </a-entity>
+    </a-scene>
 
-<script>
-  const characterEl = document.querySelector('#character');
-  const playerEl = document.querySelector('#player');
-  let isMoving = false;
+    <script>
+      const player = document.querySelector('#player');
+      const character = document.querySelector('#character');
+      const speed = 0.1;
+      let moveDir = { x: 0, z: 0 };
+      let activeMove = false;
 
-  // This function handles the "Perfect Playback" transition
-  function setAnimation(clipName) {
-    const currentClip = characterEl.getAttribute('animation-mixer').clip;
-    if (currentClip !== clipName) {
-      characterEl.setAttribute('animation-mixer', {
-        clip: clipName,
-        duration: 0, // uses original animation speed
-        crossFadeDuration: 0.4 // smooth blending between animations
+      // Handle D-Pad Input
+      const btns = {
+        up: { x: 0, z: -1, rot: 180 },
+        down: { x: 0, z: 1, rot: 0 },
+        left: { x: -1, z: 0, rot: -90 },
+        right: { x: 1, z: 0, rot: 90 }
+      };
+
+      Object.keys(btns).forEach(id => {
+        const el = document.getElementById(id);
+        
+        const startMove = () => {
+          moveDir.x = btns[id].x;
+          moveDir.z = btns[id].z;
+          character.setAttribute('rotation', {y: btns[id].rot});
+          activeMove = true;
+          character.setAttribute('animation-mixer', 'clip: Walk_Forward; crossFadeDuration: 0.4');
+        };
+
+        const stopMove = () => {
+          activeMove = false;
+          character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
+        };
+
+        el.addEventListener('touchstart', startMove);
+        el.addEventListener('touchend', stopMove);
+        // Mouse support for testing
+        el.addEventListener('mousedown', startMove);
+        el.addEventListener('mouseup', stopMove);
       });
-    }
-  }
 
-  // Listen for movement from the joystick
-  playerEl.addEventListener('navigation-start', () => {
-    isMoving = true;
-    setAnimation('Walk_Forward'); 
-  });
-
-  playerEl.addEventListener('navigation-end', () => {
-    isMoving = false;
-    setAnimation('Idle_Static');
-  });
-
-  // Optional: Speed detection for Backwards
-  // A-Frame's joystick usually maps all directions to 'navigation-start'
-  // If you want a specific "Backwards" animation, we check the velocity:
-  setInterval(() => {
-    if (isMoving) {
-      const velocity = playerEl.getAttribute('movement-controls').velocity;
-      // If moving backwards (z velocity is positive in local space)
-      if (velocity && velocity.z > 0.01) {
-        setAnimation('Crouch_Walk_Back'); // Or any back animation you have
-      } else {
-        setAnimation('Walk_Forward');
+      // Game Loop to update position
+      function tick() {
+        if (activeMove) {
+          const pos = player.getAttribute('position');
+          pos.x += moveDir.x * speed;
+          pos.z += moveDir.z * speed;
+          player.setAttribute('position', pos);
+        }
+        requestAnimationFrame(tick);
       }
-    }
-  }, 100);
-</script>
+      tick();
+    </script>
   </body>
 </html>
