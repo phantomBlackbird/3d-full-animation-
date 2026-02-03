@@ -39,13 +39,20 @@
 
       <a-entity id="player" position="0 0 0" movement-controls="controls: joystick">
         
-        <a-entity id="character"
-                  gltf-model="#playerModel"
-                  scale="0.4 0.4 0.4"
-                  position="0 0 -1.5" 
-                  rotation="0 180 0"
-                  animation-mixer="clip: Idle_Static; loop: repeat">
-        </a-entity>
+<a-entity id="character"
+          gltf-model="#playerModel"
+          scale="0.01 0.01 0.01" 
+          position="0 0 0" 
+          rotation="0 180 0"
+          animation-mixer="clip: Idle_Static; loop: repeat">
+</a-entity>
+
+<a-entity id="camera-rig" position="0 1.5 3">
+    <a-camera id="main-camera" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
+        <a-cursor visible="false" raycaster="objects: .target"></a-cursor>
+    </a-camera>
+</a-entity>
+
 
         <a-entity id="camera-rig" position="0 2 2">
             <a-camera id="main-camera" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
