@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>A-Frame Forest Shooter</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.2/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.rawgit.com/mrturck/aframe-joystick/master/joystick.min.js"></script>
+
+    <style>
+      /* Style for the crosshair */
+      #crosshair {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        background: rgba(255, 0, 0, 0.5);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 10;
+        border: 2px solid white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="crosshair"></div>
+
+    <a-scene joystick vr-mode-ui="enabled: false">
+      
+      <a-assets>
+        <a-asset-item id="playerModel" src="character-model.glb"></a-asset-item>
+      </a-assets>
+
+      <a-entity environment="preset: forest; dressingAmount: 500; groundColor: #223a1a; grid: none;"></a-entity>
+
+      <a-entity id="player" position="0 0 0" movement-controls="controls: joystick">
+        
+        <a-entity id="character"
+                  gltf-model="#playerModel"
+                  scale="0.4 0.4 0.4"
+                  position="0 0 -1.5" 
+                  rotation="0 180 0"
+                  animation-mixer="clip: Idle_Static; loop: repeat">
+        </a-entity>
+
+        <a-entity id="camera-rig" position="0 2 2">
+            <a-camera id="main-camera" look-controls="pointerLockEnabled: true" wasd-controls-enabled="false">
+                <a-cursor visible="false" raycaster="objects: .target"></a-cursor>
+            </a-camera>
+        </a-entity>
+
+      </a-entity>
+
+      <a-box class="target" position="-5 1 -10" color="red"></a-box>
+      <a-box class="target" position="5 1 -15" color="red"></a-box>
+
+    </a-scene>
+
+    <script>
+      // SCRIPT: Handle Animation Switching based on movement
+      const playerEl = document.querySelector('#player');
+      const characterEl = document.querySelector('#character');
+
+      playerEl.addEventListener('componentchanged', (evt) => {
+        if (evt.detail.name === 'position') {
+            // If the player is moving, play Walk or Run
+            characterEl.setAttribute('animation-mixer', 'clip: Walk_Forward');
+        }
+      });
+
+      // SCRIPT: Mobile/Mouse "Attack" on Tap
+      window.addEventListener('mousedown', () => {
+          // Change animation to "Jump" or "Attack" when clicking/tapping
+          characterEl.setAttribute('animation-mixer', 'clip: Jump_Up; clampWhenFinished: true; loop: once');
+          
+          // Revert to Idle after animation ends (approx 1.5 seconds)
+          setTimeout(() => {
+              characterEl.setAttribute('animation-mixer', 'clip: Idle_Static; loop: repeat');
+          }, 1500);
+      });
+    </script>
+  </body>
+</html>
