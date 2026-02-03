@@ -2,201 +2,142 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>A-Frame D-Pad Game</title>
+    <title>Landscape Mobile 3D Game</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
     <script src="https://unpkg.com/aframe-environment-component@1.3.2/dist/aframe-environment-component.min.js"></script>
 
     <style>
-      /* D-Pad Overlay Styling */
-      #controls {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        z-index: 999;
-        display: grid;
-        grid-template-areas: 
-          ". up ."
-          "left . right"
-          ". down .";
-        gap: 10px;
-        user-select: none;
+      /* Force Landscape Message */
+      @media screen and (orientation: portrait) {
+        #landscape-msg { display: flex; }
       }
-      .btn {
-        width: 60px;
-        height: 60px;
-        background: rgba(255, 255, 255, 0.3);
-        border: 2px solid #fff;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        touch-action: none; /* Prevents scrolling while playing */
+      #landscape-msg {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #000; color: white; z-index: 10000; justify-content: center; align-items: center; text-align: center;
       }
-      .btn:active { background: rgba(255, 255, 255, 0.6); }
-      #up { grid-area: up; }
-      #down { grid-area: down; }
-      #left { grid-area: left; }
-      #right { grid-area: right; }
 
-      /* Action Pad Overlay (Right Side) */
-#actions {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 999;
-  display: grid;
-  grid-template-areas: 
-    ". jump ."
-    "sneak . turn"
-    ". crouch .";
-  gap: 15px;
-  user-select: none;
-}
+      /* Half-Sized D-Pads */
+      .ui-container {
+        position: fixed; bottom: 10px; z-index: 999; user-select: none;
+      }
+      #controls { left: 10px; display: grid; grid-template-areas: ". u ." "l . r" ". d ."; gap: 5px; }
+      #actions { right: 10px; display: grid; grid-template-areas: ". j ." "s . t" ". c ."; gap: 8px; }
 
-.action-btn {
-  width: 70px;
-  height: 70px;
-  background: rgba(255, 165, 0, 0.4); /* Orange tint for actions */
-  border: 2px solid #fff;
-  border-radius: 50%; /* Circular buttons */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  text-align: center;
-  touch-action: none;
-}
-
-.action-btn:active { background: rgba(255, 165, 0, 0.8); }
-
-#jump { grid-area: jump; }
-#sneak { grid-area: sneak; }
-#turn { grid-area: turn; }
-#crouch { grid-area: crouch; }
-
+      .btn, .action-btn {
+        width: 35px; height: 35px; /* Half size */
+        background: rgba(255, 255, 255, 0.2); border: 1px solid #fff; border-radius: 5px;
+        display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; touch-action: none;
+      }
+      .action-btn { border-radius: 50%; background: rgba(255, 165, 0, 0.3); width: 40px; height: 40px; }
+      
+      #up { grid-area: u; } #down { grid-area: d; } #left { grid-area: l; } #right { grid-area: r; }
+      #jump { grid-area: j; } #sneak { grid-area: s; } #turn { grid-area: t; } #crouch { grid-area: c; }
     </style>
   </head>
 
   <body>
-    <div id="controls">
+    <div id="landscape-msg"><h1>Please Rotate to Landscape Mode</h1></div>
+
+    <div id="controls" class="ui-container">
       <div id="up" class="btn">▲</div>
       <div id="left" class="btn">◀</div>
       <div id="right" class="btn">▶</div>
       <div id="down" class="btn">▼</div>
     </div>
-<div id="actions">
-  <div id="jump" class="action-btn">JUMP</div>
-  <div id="sneak" class="action-btn">SNEAK</div>
-  <div id="turn" class="action-btn">180</div>
-  <div id="crouch" class="action-btn">CROUCH</div>
-</div>
+
+    <div id="actions" class="ui-container">
+      <div id="jump" class="action-btn">JUMP</div>
+      <div id="sneak" class="action-btn">SNEAK</div>
+      <div id="turn" class="action-btn">180</div>
+      <div id="crouch" class="action-btn">CROUCH</div>
+    </div>
 
     <a-scene vr-mode-ui="enabled: false">
       <a-assets>
         <a-asset-item id="playerModel" src="character-model.glb"></a-asset-item>
       </a-assets>
 
-      <a-entity environment="preset: forest; dressingAmount: 500;"></a-entity>
+      <a-entity environment="preset: forest; dressingAmount: 300;"></a-entity>
 
       <a-entity id="player" position="0 0 0">
-        
         <a-entity id="character"
                   gltf-model="#playerModel"
                   scale="0.011 0.011 0.011" 
-                  position="0 0 0" 
                   rotation="0 180 0"
                   animation-mixer="clip: Idle_Static; crossFadeDuration: 0.4">
         </a-entity>
 
-        <a-entity id="camera-rig" position="0 1.2 3">
-            <a-camera id="main-camera" look-controls="enabled: false" wasd-controls-enabled="false"></a-camera>
+        <a-entity id="camera-rig" position="0 0.8 2.5">
+            <a-camera id="main-camera" look-controls="pointerLockEnabled: false" wasd-controls-enabled="false">
+            </a-camera>
         </a-entity>
       </a-entity>
     </a-scene>
 
     <script>
-const player = document.querySelector('#player');
-const character = document.querySelector('#character');
-let speed = 0.1;
-let moveDir = { x: 0, z: 0 };
-let activeMove = false;
+      const player = document.querySelector('#player');
+      const character = document.querySelector('#character');
+      const camera = document.querySelector('#main-camera');
+      let speed = 0.08;
+      let moveDir = { x: 0, z: 0 };
+      let activeMove = false;
 
-// 1. MOVEMENT DPAD LOGIC
-const movementBtns = {
-  up: { x: 0, z: -1, rot: 180 },
-  down: { x: 0, z: 1, rot: 0 },
-  left: { x: -1, z: 0, rot: -90 },
-  right: { x: 1, z: 0, rot: 90 }
-};
+      // Movement Logic with Step_Stop
+      const movementBtns = {
+        up: { z: -1, rot: 180 },
+        down: { z: 1, rot: 0 },
+        left: { x: -1, rot: -90 },
+        right: { x: 1, rot: 90 }
+      };
 
-Object.keys(movementBtns).forEach(id => {
-  const el = document.getElementById(id);
-  el.addEventListener('touchstart', () => {
-    speed = 0.1; // Default speed
-    moveDir.x = movementBtns[id].x;
-    moveDir.z = movementBtns[id].z;
-    character.setAttribute('rotation', {y: movementBtns[id].rot});
-    activeMove = true;
-    character.setAttribute('animation-mixer', 'clip: Walk_Forward; crossFadeDuration: 0.4');
-  });
-  el.addEventListener('touchend', () => { 
-    activeMove = false; 
-    character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
-  });
-});
+      Object.keys(movementBtns).forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          moveDir = { x: movementBtns[id].x || 0, z: movementBtns[id].z || 0 };
+          character.setAttribute('rotation', {y: movementBtns[id].rot});
+          activeMove = true;
+          character.setAttribute('animation-mixer', 'clip: Step_Stop; crossFadeDuration: 0.2; loop: repeat');
+        });
+        el.addEventListener('touchend', () => { 
+          activeMove = false; 
+          character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
+        });
+      });
 
-// 2. ACTION PAD LOGIC
-const actions = {
-  jump: { clip: 'Jump_Up', loop: 'once' },
-  turn: { clip: 'Turn_180', loop: 'once' },
-  crouch: { clip: 'Crouch_Idle', loop: 'repeat' },
-  sneak: { clip: 'Sneak_Walk_A', loop: 'repeat', speed: 0.04 }
-};
+      // Action Logic
+      const actionMap = {
+        jump: 'Jump_Up',
+        turn: 'Turn_180',
+        crouch: 'Crouch_Idle',
+        sneak: 'Sneak_Walk_A'
+      };
 
-Object.keys(actions).forEach(id => {
-  const el = document.getElementById(id);
-  
-  el.addEventListener('touchstart', () => {
-    const config = actions[id];
-    
-    // If it's the sneak button, enable movement at a slower speed
-    if(id === 'sneak') {
-      activeMove = true;
-      speed = config.speed;
-      moveDir = { x: 0, z: -1 }; // Always sneaks forward
-      character.setAttribute('rotation', {y: 180});
-    }
-    
-    character.setAttribute('animation-mixer', {
-      clip: config.clip,
-      loop: config.loop,
-      crossFadeDuration: 0.3
-    });
-  });
+      Object.keys(actionMap).forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', () => {
+          if(id === 'sneak') { activeMove = true; moveDir = {x:0, z:-1}; character.setAttribute('rotation', {y:180}); }
+          character.setAttribute('animation-mixer', `clip: ${actionMap[id]}; crossFadeDuration: 0.3`);
+        });
+        el.addEventListener('touchend', () => {
+          activeMove = false;
+          character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
+        });
+      });
 
-  el.addEventListener('touchend', () => {
-    activeMove = false;
-    character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
-  });
-});
-
-// 3. GAME LOOP
-function tick() {
-  if (activeMove) {
-    const pos = player.getAttribute('position');
-    pos.x += moveDir.x * speed;
-    pos.z += moveDir.z * speed;
-    player.setAttribute('position', pos);
-  }
-  requestAnimationFrame(tick);
-}
-tick();
-
+      // Update Loop
+      function tick() {
+        if (activeMove) {
+          const pos = player.getAttribute('position');
+          // Move relative to the rig's current position
+          pos.x += moveDir.x * speed;
+          pos.z += moveDir.z * speed;
+          player.setAttribute('position', pos);
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
     </script>
   </body>
 </html>
