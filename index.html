@@ -81,15 +81,16 @@ const player = document.querySelector('#player');
 const character = document.querySelector('#character');
 const orbitRig = document.querySelector('#camera-orbit-rig');
 
-// Movement configuration
-let speed = 0.12; // Adjusted for a better feel on mobile
+// Configuration
+let speed = 0.12; 
 let moveDir = { x: 0, z: 0 };
 let activeMove = false;
 let isSneaking = false;
 
 /**
  * 1. MOVEMENT DPAD LOGIC
- * We calculate direction relative to the camera angle in the tick function.
+ * Mapping buttons to directions: 
+ * Up = Away from camera (-z), Down = Toward camera (+z)
  */
 const movementBtns = {
   up:    { x: 0,  z: -1 },
@@ -106,7 +107,8 @@ Object.keys(movementBtns).forEach(id => {
     moveDir = { x: movementBtns[id].x, z: movementBtns[id].z };
     activeMove = true;
     isSneaking = false;
-    // Using Step_Stop for the standard move as requested
+    
+    // Set walk animation
     character.setAttribute('animation-mixer', {
       clip: 'Step_Stop',
       crossFadeDuration: 0.2,
@@ -144,7 +146,7 @@ Object.keys(actionMap).forEach(id => {
     if (id === 'sneak') {
       activeMove = true;
       isSneaking = true;
-      moveDir = { x: 0, z: -1 }; // Sneak always moves "forward"
+      moveDir = { x: 0, z: -1 }; 
     }
 
     character.setAttribute('animation-mixer', {
@@ -166,44 +168,45 @@ Object.keys(actionMap).forEach(id => {
 });
 
 /**
- * 3. CORE ENGINE: CAMERA-RELATIVE MOVEMENT
- * This runs every frame to calculate where "forward" is based on where you look.
+ * 3. THE ENGINE: CAMERA-RELATIVE MOVEMENT
  */
 function tick() {
   if (activeMove) {
     const currentPos = player.getAttribute('position');
     const currentSpeed = isSneaking ? speed * 0.4 : speed;
     
-    // Get the camera's current Y-axis rotation in Radians
+    // Get camera orbit rotation in Radians
     const cameraYaw = orbitRig.getAttribute('rotation').y * (Math.PI / 180);
     
     /**
-     * DIRECTION MATH: 
-     * We invert the signs to ensure "UP" pushes the player AWAY from the screen.
+     * VECTOR CALCULATIONS:
+     * This math ensures that pressing "UP" always moves the player 
+     * in the direction the camera is currently facing.
      */
-    const rotatedX = - (moveDir.x * Math.cos(cameraYaw) + moveDir.z * Math.sin(cameraYaw));
-    const rotatedZ = - (moveDir.z * Math.cos(cameraYaw) - moveDir.x * Math.sin(cameraYaw));
+    const rotatedX = (moveDir.x * Math.cos(cameraYaw) + moveDir.z * Math.sin(cameraYaw));
+    const rotatedZ = (moveDir.z * Math.cos(cameraYaw) - moveDir.x * Math.sin(cameraYaw));
 
-    // Apply movement to the player rig
+    // Update Position
     currentPos.x += rotatedX * currentSpeed;
     currentPos.z += rotatedZ * currentSpeed;
     player.setAttribute('position', currentPos);
 
-    // ROTATE CHARACTER:
-    // Calculate the angle of movement so the character faces where they are going.
-    // + Math.PI (180 deg) offsets the default Mixamo model orientation.
+    // CHARACTER ROTATION:
+    // This makes the character face the direction of travel.
+    // atan2 gives us the angle, then we convert to degrees.
     const moveAngle = Math.atan2(rotatedX, rotatedZ);
     character.setAttribute('rotation', {
       x: 0, 
-      y: (moveAngle * (180 / Math.PI)) + 180, 
+      y: (moveAngle * (180 / Math.PI)) + 180, // +180 to align with standard model front
       z: 0
     });
   }
   requestAnimationFrame(tick);
 }
 
-// Start the game loop
+// Start the loop
 tick();
+
 
 </script>
   </body>
