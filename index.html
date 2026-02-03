@@ -40,6 +40,45 @@
       #down { grid-area: down; }
       #left { grid-area: left; }
       #right { grid-area: right; }
+
+      /* Action Pad Overlay (Right Side) */
+#actions {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+  display: grid;
+  grid-template-areas: 
+    ". jump ."
+    "sneak . turn"
+    ". crouch .";
+  gap: 15px;
+  user-select: none;
+}
+
+.action-btn {
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 165, 0, 0.4); /* Orange tint for actions */
+  border: 2px solid #fff;
+  border-radius: 50%; /* Circular buttons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  touch-action: none;
+}
+
+.action-btn:active { background: rgba(255, 165, 0, 0.8); }
+
+#jump { grid-area: jump; }
+#sneak { grid-area: sneak; }
+#turn { grid-area: turn; }
+#crouch { grid-area: crouch; }
+
     </style>
   </head>
 
@@ -50,6 +89,12 @@
       <div id="right" class="btn">▶</div>
       <div id="down" class="btn">▼</div>
     </div>
+<div id="actions">
+  <div id="jump" class="action-btn">JUMP</div>
+  <div id="sneak" class="action-btn">SNEAK</div>
+  <div id="turn" class="action-btn">180</div>
+  <div id="crouch" class="action-btn">CROUCH</div>
+</div>
 
     <a-scene vr-mode-ui="enabled: false">
       <a-assets>
@@ -75,54 +120,83 @@
     </a-scene>
 
     <script>
-      const player = document.querySelector('#player');
-      const character = document.querySelector('#character');
-      const speed = 0.1;
-      let moveDir = { x: 0, z: 0 };
-      let activeMove = false;
+const player = document.querySelector('#player');
+const character = document.querySelector('#character');
+let speed = 0.1;
+let moveDir = { x: 0, z: 0 };
+let activeMove = false;
 
-      // Handle D-Pad Input
-      const btns = {
-        up: { x: 0, z: -1, rot: 180 },
-        down: { x: 0, z: 1, rot: 0 },
-        left: { x: -1, z: 0, rot: -90 },
-        right: { x: 1, z: 0, rot: 90 }
-      };
+// 1. MOVEMENT DPAD LOGIC
+const movementBtns = {
+  up: { x: 0, z: -1, rot: 180 },
+  down: { x: 0, z: 1, rot: 0 },
+  left: { x: -1, z: 0, rot: -90 },
+  right: { x: 1, z: 0, rot: 90 }
+};
 
-      Object.keys(btns).forEach(id => {
-        const el = document.getElementById(id);
-        
-        const startMove = () => {
-          moveDir.x = btns[id].x;
-          moveDir.z = btns[id].z;
-          character.setAttribute('rotation', {y: btns[id].rot});
-          activeMove = true;
-          character.setAttribute('animation-mixer', 'clip: Walk_Forward; crossFadeDuration: 0.4');
-        };
+Object.keys(movementBtns).forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', () => {
+    speed = 0.1; // Default speed
+    moveDir.x = movementBtns[id].x;
+    moveDir.z = movementBtns[id].z;
+    character.setAttribute('rotation', {y: movementBtns[id].rot});
+    activeMove = true;
+    character.setAttribute('animation-mixer', 'clip: Walk_Forward; crossFadeDuration: 0.4');
+  });
+  el.addEventListener('touchend', () => { 
+    activeMove = false; 
+    character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
+  });
+});
 
-        const stopMove = () => {
-          activeMove = false;
-          character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
-        };
+// 2. ACTION PAD LOGIC
+const actions = {
+  jump: { clip: 'Jump_Up', loop: 'once' },
+  turn: { clip: 'Turn_180', loop: 'once' },
+  crouch: { clip: 'Crouch_Idle', loop: 'repeat' },
+  sneak: { clip: 'Sneak_Walk_A', loop: 'repeat', speed: 0.04 }
+};
 
-        el.addEventListener('touchstart', startMove);
-        el.addEventListener('touchend', stopMove);
-        // Mouse support for testing
-        el.addEventListener('mousedown', startMove);
-        el.addEventListener('mouseup', stopMove);
-      });
+Object.keys(actions).forEach(id => {
+  const el = document.getElementById(id);
+  
+  el.addEventListener('touchstart', () => {
+    const config = actions[id];
+    
+    // If it's the sneak button, enable movement at a slower speed
+    if(id === 'sneak') {
+      activeMove = true;
+      speed = config.speed;
+      moveDir = { x: 0, z: -1 }; // Always sneaks forward
+      character.setAttribute('rotation', {y: 180});
+    }
+    
+    character.setAttribute('animation-mixer', {
+      clip: config.clip,
+      loop: config.loop,
+      crossFadeDuration: 0.3
+    });
+  });
 
-      // Game Loop to update position
-      function tick() {
-        if (activeMove) {
-          const pos = player.getAttribute('position');
-          pos.x += moveDir.x * speed;
-          pos.z += moveDir.z * speed;
-          player.setAttribute('position', pos);
-        }
-        requestAnimationFrame(tick);
-      }
-      tick();
+  el.addEventListener('touchend', () => {
+    activeMove = false;
+    character.setAttribute('animation-mixer', 'clip: Idle_Static; crossFadeDuration: 0.4');
+  });
+});
+
+// 3. GAME LOOP
+function tick() {
+  if (activeMove) {
+    const pos = player.getAttribute('position');
+    pos.x += moveDir.x * speed;
+    pos.z += moveDir.z * speed;
+    player.setAttribute('position', pos);
+  }
+  requestAnimationFrame(tick);
+}
+tick();
+
     </script>
   </body>
 </html>
